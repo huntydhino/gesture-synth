@@ -1101,7 +1101,7 @@ function computeCoverRect(srcW, srcH, dstW, dstH) {
   }
 }
 
-function drawFrame(results, canvasWidth, canvasHeight, pixelationIntensity = 0) {
+function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0) {
   const srcW = videoEl.videoWidth;
   const srcH = videoEl.videoHeight;
   if (!srcW || !srcH) return;
@@ -1113,22 +1113,40 @@ function drawFrame(results, canvasWidth, canvasHeight, pixelationIntensity = 0) 
   ctx.translate(canvasWidth, 0);
   ctx.scale(-1, 1);
 
-  const pixelSize = Math.round(1 + Math.abs(pixelationIntensity) * 30);
-  if (pixelSize < 2 || !pixelationCtx) {
-    ctx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
+  if (filterTilt < 0) {
+    const blurRadius = Math.abs(filterTilt) * 14;
+    ctx.filter = `blur(${blurRadius}px)`;
+    ctx.drawImage(
+      videoEl,
+      sx,
+      sy,
+      sWidth,
+      sHeight,
+      -blurRadius,
+      -blurRadius,
+      canvasWidth + blurRadius * 2,
+      canvasHeight + blurRadius * 2
+    );
+    ctx.filter = "none";
   } else {
-    const pixelWidth = Math.max(1, Math.ceil(canvasWidth / pixelSize));
-    const pixelHeight = Math.max(1, Math.ceil(canvasHeight / pixelSize));
-    if (pixelationCanvas.width !== pixelWidth || pixelationCanvas.height !== pixelHeight) {
-      pixelationCanvas.width = pixelWidth;
-      pixelationCanvas.height = pixelHeight;
-    }
+    const pixelSize = Math.round(1 + filterTilt * 30);
+    if (pixelSize < 2 || !pixelationCtx) {
+      ctx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
+    } else {
+      const pixelWidth = Math.max(1, Math.ceil(canvasWidth / pixelSize));
+      const pixelHeight = Math.max(1, Math.ceil(canvasHeight / pixelSize));
+      if (pixelationCanvas.width !== pixelWidth || pixelationCanvas.height !== pixelHeight) {
+        pixelationCanvas.width = pixelWidth;
+        pixelationCanvas.height = pixelHeight;
+      }
 
-    pixelationCtx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, pixelWidth, pixelHeight);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(pixelationCanvas, 0, 0, pixelWidth, pixelHeight, 0, 0, canvasWidth, canvasHeight);
+      pixelationCtx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, pixelWidth, pixelHeight);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(pixelationCanvas, 0, 0, pixelWidth, pixelHeight, 0, 0, canvasWidth, canvasHeight);
+    }
   }
 
+  ctx.filter = "none";
   ctx.fillStyle = "#ffffff80";
   for (const landmarks of results.landmarks) {
     for (const point of landmarks) {
@@ -1191,11 +1209,11 @@ async function main() {
       }
     });
 
-    const filterIntensity = cachedRightLandmarks
-      ? Math.abs(getHandHorizontalTilt(cachedRightLandmarks, "Right"))
+    const filterTilt = cachedRightLandmarks
+      ? getHandHorizontalTilt(cachedRightLandmarks, "Right")
       : 0;
 
-    drawFrame(results, canvasEl.width, canvasEl.height, filterIntensity);
+    drawFrame(results, canvasEl.width, canvasEl.height, filterTilt);
   }
 
 
