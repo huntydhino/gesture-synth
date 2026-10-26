@@ -4,6 +4,8 @@ import { HandLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 const videoEl = document.getElementById("webcam");
 const canvasEl = document.getElementById("overlay");
 const ctx = canvasEl.getContext("2d");
+const pixelationCanvas = document.createElement("canvas");
+const pixelationCtx = pixelationCanvas.getContext("2d");
 
 const gestureGuideEl = document.getElementById("gestureGuide");
 const guideToggleEl = document.getElementById("guideToggle");
@@ -1099,7 +1101,7 @@ function computeCoverRect(srcW, srcH, dstW, dstH) {
   }
 }
 
-function drawFrame(results, canvasWidth, canvasHeight) {
+function drawFrame(results, canvasWidth, canvasHeight, pixelationIntensity = 0) {
   const srcW = videoEl.videoWidth;
   const srcH = videoEl.videoHeight;
   if (!srcW || !srcH) return;
@@ -1111,7 +1113,21 @@ function drawFrame(results, canvasWidth, canvasHeight) {
   ctx.translate(canvasWidth, 0);
   ctx.scale(-1, 1);
 
-  ctx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
+  const pixelSize = Math.round(1 + Math.abs(pixelationIntensity) * 30);
+  if (pixelSize < 2 || !pixelationCtx) {
+    ctx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
+  } else {
+    const pixelWidth = Math.max(1, Math.ceil(canvasWidth / pixelSize));
+    const pixelHeight = Math.max(1, Math.ceil(canvasHeight / pixelSize));
+    if (pixelationCanvas.width !== pixelWidth || pixelationCanvas.height !== pixelHeight) {
+      pixelationCanvas.width = pixelWidth;
+      pixelationCanvas.height = pixelHeight;
+    }
+
+    pixelationCtx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, pixelWidth, pixelHeight);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(pixelationCanvas, 0, 0, pixelWidth, pixelHeight, 0, 0, canvasWidth, canvasHeight);
+  }
 
   ctx.fillStyle = "#ffffff80";
   for (const landmarks of results.landmarks) {
@@ -1160,12 +1176,6 @@ async function main() {
 
     const results = handLandmarker.detectForVideo(videoEl, timestampNow);
 
-    drawFrame(
-      results,
-      canvasEl.width,
-      canvasEl.height
-    );
-
     cachedLeftLandmarks = null;
     cachedRightLandmarks = null;
 
@@ -1180,6 +1190,12 @@ async function main() {
         cachedRightLandmarks = landmarks;
       }
     });
+
+    const filterIntensity = cachedRightLandmarks
+      ? Math.abs(getHandHorizontalTilt(cachedRightLandmarks, "Right"))
+      : 0;
+
+    drawFrame(results, canvasEl.width, canvasEl.height, filterIntensity);
   }
 
 
