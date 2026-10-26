@@ -1101,7 +1101,7 @@ function computeCoverRect(srcW, srcH, dstW, dstH) {
   }
 }
 
-function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0) {
+function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0, volume01 = 0) {
   const srcW = videoEl.videoWidth;
   const srcH = videoEl.videoHeight;
   if (!srcW || !srcH) return;
@@ -1113,9 +1113,10 @@ function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0) {
   ctx.translate(canvasWidth, 0);
   ctx.scale(-1, 1);
 
+  const saturation = Math.round(40 + Math.max(0, Math.min(1, volume01)) * 180);
   if (filterTilt < 0) {
     const blurRadius = Math.abs(filterTilt) * 14;
-    ctx.filter = `blur(${blurRadius}px)`;
+    ctx.filter = `saturate(${saturation}%) blur(${blurRadius}px)`;
     ctx.drawImage(
       videoEl,
       sx,
@@ -1127,8 +1128,8 @@ function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0) {
       canvasWidth + blurRadius * 2,
       canvasHeight + blurRadius * 2
     );
-    ctx.filter = "none";
   } else {
+    ctx.filter = `saturate(${saturation}%)`;
     const pixelSize = Math.round(1 + filterTilt * 30);
     if (pixelSize < 2 || !pixelationCtx) {
       ctx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
@@ -1212,8 +1213,11 @@ async function main() {
     const filterTilt = cachedRightLandmarks
       ? getHandHorizontalTilt(cachedRightLandmarks, "Right")
       : 0;
+    const volume01 = cachedRightLandmarks
+      ? getVolumeFromHeight(cachedRightLandmarks)
+      : 0;
 
-    drawFrame(results, canvasEl.width, canvasEl.height, filterTilt);
+    drawFrame(results, canvasEl.width, canvasEl.height, filterTilt, volume01);
   }
 
 
