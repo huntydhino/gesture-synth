@@ -245,20 +245,12 @@ html, body {
   min-height: 34px;
 }
 
-#karaokeTrackTitle {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .karaoke-controls {
   display: flex;
   flex: 0 0 auto;
   gap: 6px;
+  align-self: flex-end;
+  margin-bottom: 6px;
 }
 
 .karaoke-controls button {
@@ -280,13 +272,6 @@ html, body {
   background: transparent;
   color: var(--text);
   font-size: 18px;
-}
-
-#karaokeStatus {
-  min-height: 15px;
-  margin: 2px 0 5px;
-  color: var(--muted-text);
-  font-size: 11px;
 }
 
 #karaokeLines {
@@ -605,14 +590,10 @@ html, body {
   </section>
 
   <section id="karaokeOverlay" class="hidden" aria-label="Selected lyrics">
-    <header class="karaoke-header">
-      <h2 id="karaokeTrackTitle"></h2>
-      <div class="karaoke-controls">
-        <button id="karaokeToggle" type="button">Play</button>
-        <button id="closeKaraoke" type="button" aria-label="Close lyrics">×</button>
-      </div>
-    </header>
-    <p id="karaokeStatus" role="status" aria-live="polite">Ready to read.</p>
+    <div class="karaoke-controls">
+      <button id="karaokeToggle" type="button">Play</button>
+      <button id="closeKaraoke" type="button" aria-label="Close lyrics">×</button>
+    </div>
     <ol id="karaokeLines" aria-live="polite"></ol>
   </section>
 

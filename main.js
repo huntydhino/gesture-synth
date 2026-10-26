@@ -31,8 +31,6 @@ const lyricsQuery = document.getElementById("lyricsQuery");
 const lyricsStatus = document.getElementById("lyricsStatus");
 const lyricsResults = document.getElementById("lyricsResults");
 const karaokeOverlay = document.getElementById("karaokeOverlay");
-const karaokeTrackTitle = document.getElementById("karaokeTrackTitle");
-const karaokeStatus = document.getElementById("karaokeStatus");
 const karaokeLines = document.getElementById("karaokeLines");
 const karaokeToggle = document.getElementById("karaokeToggle");
 const closeKaraoke = document.getElementById("closeKaraoke");
@@ -716,7 +714,6 @@ function revealNextLyrics() {
   if (nextLyricIndex >= lyricEntries.length) {
     playbackTimer = null;
     karaokeToggle.textContent = "Play";
-    karaokeStatus.textContent = "Finished. Play again to restart.";
     return;
   }
 
@@ -727,7 +724,6 @@ function revealNextLyrics() {
 function toggleLyricsPlayback() {
   if (playbackTimer !== null) {
     pauseLyrics();
-    karaokeStatus.textContent = "Paused.";
     return;
   }
 
@@ -740,7 +736,6 @@ function toggleLyricsPlayback() {
 
   playbackStartedAt = performance.now();
   karaokeToggle.textContent = "Pause";
-  karaokeStatus.textContent = "Playing.";
   revealNextLyrics();
 }
 
@@ -789,8 +784,6 @@ function renderLyricsResult(result, selectedButton) {
     button.setAttribute("aria-pressed", String(button === selectedButton));
   });
 
-  const title = result.trackName || result.name || "Untitled track";
-  const artist = result.artistName || "Unknown artist";
   lyricEntries = getLyricEntries(result);
   if (lyricEntries.length === 0) {
     lyricsStatus.textContent = "This result does not include readable lyrics.";
@@ -807,8 +800,6 @@ function renderLyricsResult(result, selectedButton) {
     karaokeLines.append(row);
   });
   showLyricWindow(0, "instant");
-  karaokeTrackTitle.textContent = `${title} - ${artist}`;
-  karaokeStatus.textContent = result.syncedLyrics ? "Synced lyrics ready." : "Unsynced lyrics: one line every 3.5 seconds.";
   karaokeToggle.textContent = "Play";
   karaokeOverlay.classList.remove("hidden");
   lyricsPanel.classList.add("hidden");
