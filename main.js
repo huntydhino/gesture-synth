@@ -33,6 +33,7 @@ const lyricsResults = document.getElementById("lyricsResults");
 const karaokeOverlay = document.getElementById("karaokeOverlay");
 const karaokeTrackTitle = document.getElementById("karaokeTrackTitle");
 const karaokeStatus = document.getElementById("karaokeStatus");
+const lyricsMetadata = document.getElementById("lyricsMetadata");
 const karaokeLines = document.getElementById("karaokeLines");
 const karaokeToggle = document.getElementById("karaokeToggle");
 const closeKaraoke = document.getElementById("closeKaraoke");
@@ -809,6 +810,27 @@ function renderLyricsResult(result, selectedButton) {
   showLyricWindow(0, "instant");
   karaokeTrackTitle.textContent = `${title} - ${artist}`;
   karaokeStatus.textContent = result.syncedLyrics ? "Synced lyrics ready." : "Unsynced lyrics: one line every 3.5 seconds.";
+  const duration = Number(result.duration);
+  const durationLabel = Number.isFinite(duration)
+    ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}`
+    : "Unavailable";
+  const metadata = [
+    ["Track", title],
+    ["Artist", artist],
+    ["Album", result.albumName || "Unavailable"],
+    ["LRCLIB ID", result.id ?? "Unavailable"],
+    ["Duration", durationLabel],
+    ["Instrumental", result.instrumental ? "Yes" : "No"],
+    ["Word sync", typeof result.hasWordSync === "boolean" ? (result.hasWordSync ? "Yes" : "No") : "Unavailable"],
+  ];
+  lyricsMetadata.replaceChildren();
+  metadata.forEach(([label, value]) => {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const detail = document.createElement("dd");
+    detail.textContent = value;
+    lyricsMetadata.append(term, detail);
+  });
   karaokeToggle.textContent = "Play";
   karaokeOverlay.classList.remove("hidden");
   lyricsPanel.classList.add("hidden");

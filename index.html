@@ -289,6 +289,25 @@ html, body {
   font-size: 11px;
 }
 
+#lyricsMetadata {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  gap: 3px 10px;
+  margin: 0 0 6px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+#lyricsMetadata dt {
+  color: var(--muted-text);
+}
+
+#lyricsMetadata dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 #karaokeLines {
   height: 64px;
   min-height: 64px;
@@ -332,6 +351,10 @@ html, body {
     top: 12px;
     right: 12px;
     max-height: calc(100dvh - 24px);
+  }
+
+  #lyricsMetadata {
+    grid-template-columns: max-content minmax(0, 1fr);
   }
 }
 
@@ -613,6 +636,7 @@ html, body {
       </div>
     </header>
     <p id="karaokeStatus" role="status" aria-live="polite">Ready to read.</p>
+    <dl id="lyricsMetadata" aria-label="LRCLIB track metadata"></dl>
     <ol id="karaokeLines" aria-live="polite"></ol>
   </section>
 
