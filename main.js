@@ -19,7 +19,6 @@ const drumGrid = document.getElementById("drumGrid");
 const drumBpmInput = document.getElementById("drumBpm");
 const drumStatus = document.getElementById("drumStatus");
 const playDrumsButton = document.getElementById("playDrums");
-const stopDrumsButton = document.getElementById("stopDrums");
 
 function trackClarityEvent(eventName) {
   if (typeof window.clarity === "function") {
@@ -763,8 +762,11 @@ function scheduleDrumSteps() {
   }
 }
 
-async function startDrumPlayback() {
-  if (drumIsPlaying) return;
+async function toggleDrumPlayback() {
+  if (drumIsPlaying) {
+    stopDrumPlayback();
+    return;
+  }
   if (!ensureDrumAudio()) {
     drumStatus.textContent = "Start Gesture Synth first to enable audio.";
     return;
@@ -774,7 +776,8 @@ async function startDrumPlayback() {
   drumIsPlaying = true;
   nextDrumStep = 0;
   nextDrumStepTime = synth.ctx.currentTime + 0.03;
-  playDrumsButton.disabled = true;
+  playDrumsButton.textContent = "Stop";
+  playDrumsButton.setAttribute("aria-pressed", "true");
   drumScheduler = setInterval(scheduleDrumSteps, 25);
   scheduleDrumSteps();
 }
@@ -786,7 +789,8 @@ function stopDrumPlayback() {
     drumScheduler = null;
   }
   nextDrumStep = 0;
-  playDrumsButton.disabled = false;
+  playDrumsButton.textContent = "Play";
+  playDrumsButton.setAttribute("aria-pressed", "false");
   setDrumPlayhead(-1);
 }
 
@@ -798,15 +802,12 @@ drumButton.addEventListener("click", () => {
   if (isOpen) {
     lyricsPanel.classList.add("hidden");
     lyricsButton.setAttribute("aria-expanded", "false");
-  } else {
-    stopDrumPlayback();
   }
 });
 
 closeDrumPanel.addEventListener("click", () => {
   drumPanel.classList.add("hidden");
   drumButton.setAttribute("aria-expanded", "false");
-  stopDrumPlayback();
   drumButton.focus();
 });
 
@@ -825,8 +826,7 @@ drumGrid.addEventListener("click", (event) => {
   }
 });
 
-playDrumsButton.addEventListener("click", startDrumPlayback);
-stopDrumsButton.addEventListener("click", stopDrumPlayback);
+playDrumsButton.addEventListener("click", toggleDrumPlayback);
 drumBpmInput.addEventListener("change", getDrumBpm);
 
 let hasPlayedFirstSound = false;
@@ -895,7 +895,6 @@ lyricsButton.addEventListener("click", () => {
   if (isOpen) {
     drumPanel.classList.add("hidden");
     drumButton.setAttribute("aria-expanded", "false");
-    stopDrumPlayback();
     lyricsQuery.focus();
   }
 });

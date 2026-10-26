@@ -125,9 +125,10 @@ html, body {
   overflow-y: auto;
   border: 1px solid var(--dark-raspberry);
   border-radius: 8px;
-  background: rgba(2,2,2,0.96);
+  background: linear-gradient(145deg, rgba(94,0,53,0.94), rgba(2,54,24,0.96) 58%, rgba(2,2,2,0.98));
   color: var(--text);
   font-family: monospace;
+  box-shadow: 0 8px 32px rgba(2,54,24,0.45);
 }
 
 #drumPanel.hidden {
@@ -186,6 +187,16 @@ html, body {
   color: var(--text);
   font: 13px monospace;
   cursor: pointer;
+}
+
+#playDrums {
+  border-color: var(--dark-raspberry);
+  background: var(--crimson-violet);
+}
+
+#playDrums[aria-pressed="true"] {
+  border-color: var(--dark-teal);
+  background: var(--dark-teal);
 }
 
 #drumPanel button:focus-visible,
@@ -768,8 +779,7 @@ html, body {
         BPM
         <input id="drumBpm" type="number" min="40" max="240" step="1" value="120" inputmode="numeric">
       </label>
-      <button id="playDrums" type="button">Play</button>
-      <button id="stopDrums" type="button">Stop</button>
+      <button id="playDrums" type="button" aria-pressed="false">Play</button>
     </div>
     <div class="drum-grid-header" aria-hidden="true">
       <span></span>
