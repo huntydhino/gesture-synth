@@ -6,6 +6,9 @@ const canvasEl = document.getElementById("overlay");
 const ctx = canvasEl.getContext("2d");
 const pixelationCanvas = document.createElement("canvas");
 const pixelationCtx = pixelationCanvas.getContext("2d");
+const grainCanvas = document.createElement("canvas");
+const grainCtx = grainCanvas.getContext("2d");
+let grainImageData = null;
 
 const gestureGuideEl = document.getElementById("gestureGuide");
 const guideToggleEl = document.getElementById("guideToggle");
@@ -1101,6 +1104,35 @@ function computeCoverRect(srcW, srcH, dstW, dstH) {
   }
 }
 
+function drawGrainOverlay(volume01, canvasWidth, canvasHeight) {
+  if (!grainCtx || volume01 <= 0) return;
+
+  const grainWidth = Math.max(1, Math.ceil(canvasWidth / 3));
+  const grainHeight = Math.max(1, Math.ceil(canvasHeight / 3));
+  if (!grainImageData || grainCanvas.width !== grainWidth || grainCanvas.height !== grainHeight) {
+    grainCanvas.width = grainWidth;
+    grainCanvas.height = grainHeight;
+    grainImageData = grainCtx.createImageData(grainWidth, grainHeight);
+  }
+
+  const pixels = grainImageData.data;
+  for (let index = 0; index < pixels.length; index += 4) {
+    const value = Math.floor(Math.random() * 256);
+    pixels[index] = value;
+    pixels[index + 1] = value;
+    pixels[index + 2] = value;
+    pixels[index + 3] = 255;
+  }
+  grainCtx.putImageData(grainImageData, 0, 0);
+
+  ctx.save();
+  ctx.globalCompositeOperation = "soft-light";
+  ctx.globalAlpha = Math.min(1, volume01) * 0.45;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(grainCanvas, 0, 0, canvasWidth, canvasHeight);
+  ctx.restore();
+}
+
 function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0, volume01 = 0) {
   const srcW = videoEl.videoWidth;
   const srcH = videoEl.videoHeight;
@@ -1113,10 +1145,9 @@ function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0, volume01 
   ctx.translate(canvasWidth, 0);
   ctx.scale(-1, 1);
 
-  const saturation = Math.round(40 + Math.max(0, Math.min(1, volume01)) * 180);
   if (filterTilt < 0) {
     const blurRadius = Math.abs(filterTilt) * 14;
-    ctx.filter = `saturate(${saturation}%) blur(${blurRadius}px)`;
+    ctx.filter = `blur(${blurRadius}px)`;
     ctx.drawImage(
       videoEl,
       sx,
@@ -1129,7 +1160,7 @@ function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0, volume01 
       canvasHeight + blurRadius * 2
     );
   } else {
-    ctx.filter = `saturate(${saturation}%)`;
+    ctx.filter = "none";
     const pixelSize = Math.round(1 + filterTilt * 30);
     if (pixelSize < 2 || !pixelationCtx) {
       ctx.drawImage(videoEl, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
@@ -1148,6 +1179,7 @@ function drawFrame(results, canvasWidth, canvasHeight, filterTilt = 0, volume01 
   }
 
   ctx.filter = "none";
+  drawGrainOverlay(volume01, canvasWidth, canvasHeight);
   ctx.fillStyle = "#ffffff80";
   for (const landmarks of results.landmarks) {
     for (const point of landmarks) {
