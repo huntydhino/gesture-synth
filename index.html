@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gesture Synth</title>
+
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "xzz1v75lj8");
+</script>
+
+<style>
+:root {
+  --dark-raspberry: #950952;
+  --crimson-violet: #5e0035;
+  --black: #020202;
+  --black-forest: #023618;
+  --dark-teal: #005c69;
+  --text: #ffffff;
+  --muted-text: #d8cbd2;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--black);
+  overflow: hidden;
+}
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+}
+#webcam {
+  display: none;
+}
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+#helpButton {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--dark-teal);
+  background: var(--black-forest);
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 6;
+}
+
+#lyricsButton {
+  position: absolute;
+  top: 140px;
+  right: 12px;
+  z-index: 6;
+  padding: 7px 10px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  background: var(--crimson-violet);
+  color: var(--text);
+  font: 14px monospace;
+  cursor: pointer;
+}
+
+#lyricsPanel {
+  position: absolute;
+  top: 180px;
+  right: 12px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(70vh, 680px);
+  padding: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--dark-raspberry);
+  border-radius: 8px;
+  background: rgba(2,2,2,0.96);
+  color: var(--text);
+  font-family: monospace;
+}
+
+#lyricsPanel.hidden {
+  display: none;
+}
+
+.lyrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.lyrics-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+}
+
+#closeLyrics {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+#lyricsSearchForm {
+  display: flex;
+  gap: 8px;
+}
+
+#lyricsQuery {
+  min-width: 0;
+  flex: 1;
+  padding: 9px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  background: var(--black-forest);
+  color: var(--text);
+  font: 14px monospace;
+}
+
+#lyricsSearchForm button {
+  padding: 8px 10px;
+  border: 1px solid var(--dark-raspberry);
+  border-radius: 4px;
+  background: var(--dark-raspberry);
+  color: var(--text);
+  font: 14px monospace;
+  cursor: pointer;
+}
+
+#lyricsStatus {
+  min-height: 18px;
+  margin: 10px 0 6px;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+#lyricsResults {
+  display: flex;
+  flex-direction: column;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.lyrics-result {
+  padding: 8px 6px;
+  border: 0;
+  border-top: 1px solid var(--dark-teal);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: 12px/1.4 monospace;
+  cursor: pointer;
+}
+
+.lyrics-result[aria-pressed="true"] {
+  color: var(--text);
+}
+
+#lyricsReader {
+  min-height: 120px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  border-top: 1px solid var(--dark-teal);
+  background: rgba(2,54,24,0.24);
+  overscroll-behavior: contain;
+}
+
+#lyricsTrackTitle {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#lyricsLines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#lyricsLines li {
+  padding: 5px 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#karaokeOverlay {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  width: min(700px, calc(100vw - 32px));
+  max-height: 42vh;
+  padding: 12px 16px 8px;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  border: 1px solid rgba(149,9,82,0.8);
+  border-radius: 8px;
+  background: rgba(2,2,2,0.94);
+  color: var(--text);
+  font-family: monospace;
+  box-shadow: 0 8px 32px rgba(2,54,24,0.45);
+}
+
+#karaokeOverlay.hidden {
+  display: none;
+}
+
+.karaoke-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+#karaokeTrackTitle {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.karaoke-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.karaoke-controls button {
+  min-width: 64px;
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  background: var(--dark-teal);
+  color: var(--text);
+  font: 13px monospace;
+  cursor: pointer;
+}
+
+#closeKaraoke {
+  min-width: 32px;
+  padding: 3px;
+  border-color: var(--dark-raspberry);
+  background: transparent;
+  color: var(--text);
+  font-size: 18px;
+}
+
+#karaokeStatus {
+  min-height: 15px;
+  margin: 2px 0 5px;
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+#karaokeLines {
+  height: 64px;
+  min-height: 64px;
+  margin: 0;
+  padding: 0 8px 0 0;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+#karaokeLines::-webkit-scrollbar {
+  display: none;
+}
+
+#karaokeLines li {
+  height: 32px;
+  box-sizing: border-box;
+  padding: 4px 0;
+  color: rgba(255,255,255,0.68);
+  font-size: 16px;
+  line-height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 180ms ease;
+}
+
+#karaokeLines li.current {
+  color: var(--text);
+  text-shadow: 0 0 12px rgba(149,9,82,0.75);
+}
+
+#karaokeLines li.next {
+  color: rgba(255,255,255,0.7);
+}
+
+@media (max-width: 520px) {
+  #lyricsPanel {
+    top: 12px;
+    right: 12px;
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+#helpModal.hidden {
+  display: none;
+}
+
+#helpModal {
+  position: absolute;
+  inset: 0;
+  background: rgba(2,2,2,0.82);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.help-content {
+  background: var(--black-forest);
+  color: var(--text);
+  border: 1px solid var(--dark-teal);
+  border-radius: 10px;
+  width: min(500px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 24px;
+  font-family: monospace;
+}
+
+#closeHelp {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.help-content h2,
+.help-content h3 {
+  color: var(--text);
+}
+
+.help-content a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--dark-raspberry);
+}
+
+.help-content a:hover {
+  color: var(--text);
+  background: var(--dark-raspberry);
+}
+#keySelect {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--black);
+  color: var(--text);
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 4px 8px;
+  z-index: 5;
+}
+#toneSelect {
+  position: absolute;
+  top: 48px;
+  left: 12px;
+  background: var(--black);
+  color: var(--text);
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 4px 8px;
+  z-index: 5;
+}
+
+#guideToggle {
+  position: absolute;
+  top: 90px;
+  left: 12px;
+  background: var(--black);
+  color: var(--text);
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 4px 8px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+#gestureGuide {
+  position: absolute;
+  top: 128px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 5;
+  font-family: monospace;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(94,0,53,0.92), rgba(2,2,2,0.9));
+}
+
+#gestureGuide.hidden {
+  display: none;
+}
+
+.gesture-guide-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gesture-guide-note {
+  width: 28px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.gesture-guide-gesture {
+  color: var(--text);
+  font-size: 14px;
+}
+#chordDisplay {
+  position: absolute;
+  bottom: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text);
+  font-size: 42px;
+  font-family: monospace;
+  font-weight: bold;
+  text-shadow: 0 0 12px rgba(149,9,82,0.75);
+  pointer-events: none;
+}
+#volumeMeter {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+  pointer-events: none;
+}
+.vol-bar {
+  width: 70px;
+  height: 8px;
+  background: var(--crimson-violet);
+  border-radius: 2px;
+}
+.vol-bar.lit {
+  background: var(--dark-teal);
+}
+/* Add this style rule inside your <style> section */
+#distortionDisplay {
+  position: absolute;
+  top: 105px; /* Sits perfectly below your 8 volume bars */
+  right: 12px;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 14px;
+  text-align: right;
+  pointer-events: none;
+}
+#qualityDisplay {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text);
+  font-size: 12px;
+  font-family: monospace;
+  pointer-events: none;
+}
+#startOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(2,2,2,0.72);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 10vh;
+  gap: 16px;
+  cursor: pointer;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.start-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--dark-raspberry);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: var(--text);
+}
+
+.start-text {
+  color: var(--text);
+  font-family: monospace;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.start-text a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--dark-raspberry);
+  text-underline-offset: 3px;
+}
+
+.start-text a:hover {
+  color: var(--text);
+  background: var(--dark-raspberry);
+}
+
+#overlay.dimmed {
+  filter: grayscale(1) brightness(0.6);
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <video id="webcam" autoplay playsinline muted></video>
+  <canvas id="overlay" class="dimmed"></canvas>
+  <div id="chordDisplay">--</div>
+  <div id="volumeMeter">
+    <div class="vol-bar" data-index="7"></div>
+    <div class="vol-bar" data-index="6"></div>
+    <div class="vol-bar" data-index="5"></div>
+    <div class="vol-bar" data-index="4"></div>
+    <div class="vol-bar" data-index="3"></div>
+    <div class="vol-bar" data-index="2"></div>
+    <div class="vol-bar" data-index="1"></div>
+    <div class="vol-bar" data-index="0"></div>
+  </div>
+  <select id="keySelect">
+  <option value="220.00" data-note="A" selected>A</option>
+  <option value="233.08" data-note="Bb">A#/Bb</option>
+  <option value="246.94" data-note="B">B</option>
+  <option value="261.63" data-note="C">C</option>
+  <option value="277.18" data-note="Db">C#/Db</option>
+  <option value="293.66" data-note="D">D</option>
+  <option value="311.13" data-note="Eb">D#/Eb</option>
+  <option value="329.63" data-note="E">E</option>
+  <option value="349.23" data-note="F">F</option>
+  <option value="369.99" data-note="Gb">F#/Gb</option>
+  <option value="392.00" data-note="G">G</option>
+  <option value="415.30" data-note="Ab">G#/Ab</option>
+</select>
+
+<select id="toneSelect">
+  <option value="triangle" selected>Warm Synth</option>
+  <option value="sawtooth">Bright Synth</option>
+  <option value="square">Retro Synth</option>
+</select>
+<button id="guideToggle">Open Guide</button>
+<div id="gestureGuide" class="hidden"></div>
+  <div id="qualityDisplay">--</div>
+  <div id="distortionDisplay">Filter: 0%</div>
+
+  <button id="lyricsButton" type="button" aria-expanded="false" aria-controls="lyricsPanel">Lyrics</button>
+  <section id="lyricsPanel" class="hidden" aria-label="Lyrics search and reader">
+    <header class="lyrics-header">
+      <h2>Find lyrics</h2>
+      <button id="closeLyrics" type="button" aria-label="Close lyrics">×</button>
+    </header>
+    <form id="lyricsSearchForm">
+      <input id="lyricsQuery" type="search" placeholder="Song or artist" aria-label="Song or artist" required>
+      <button type="submit">Search</button>
+    </form>
+    <p id="lyricsStatus" role="status" aria-live="polite">Search LRCLIB by song or artist.</p>
+    <div id="lyricsResults" aria-label="Search results"></div>
+  </section>
+
+  <section id="karaokeOverlay" class="hidden" aria-label="Selected lyrics">
+    <header class="karaoke-header">
+      <h2 id="karaokeTrackTitle"></h2>
+      <div class="karaoke-controls">
+        <button id="karaokeToggle" type="button">Play</button>
+        <button id="closeKaraoke" type="button" aria-label="Close lyrics">×</button>
+      </div>
+    </header>
+    <p id="karaokeStatus" role="status" aria-live="polite">Ready to read.</p>
+    <ol id="karaokeLines" aria-live="polite"></ol>
+  </section>
+
+  <button id="helpButton">?</button>
+
+  <div id="helpModal" class="hidden">
+    <div class="help-content">
+      <button id="closeHelp">✕</button>
+
+      <h2>Gesture Synth Guide</h2>
+      <p>
+      Gesture Synth is an interactive musical instrument created by <a href="https://indecisiveeric.com">
+      Eric Wei</a>.
+      Use your hands to create chords, melodies, and sounds in real-time!
+      
+      </p>
+
+      
+
+      <h3>Left Hand</h3>
+      <p><b>Tilt</b><br>
+      Inward → Major<br>
+      Outward → Minor</p>
+
+      <p><b>Fingers (Scale Degree)</b><br>
+      1 → I<br>
+      2 → II<br>
+      3 → III<br>
+      4 → IV<br>
+      5 → V<br>
+      Index + Pinky → VI<br>
+      Index + Pinky + Thumb → VII</p>
+
+      <h3>Right Hand</h3>
+      <p><b>Fingers (Chord Quality)</b><br>
+      1 → Root Position<br>
+      2 → 1st Inversion<br>
+      3 → Major/Minor 7th<br>
+      4 → Dominant/Diminished 7th</p>
+
+      <p><b>Octave</b><br>
+      Thumb In → higher octave<br>
+      Thumb Out → lower octave</p>
+
+      <p><b>Tilt</b><br>
+      Inward → More Filter<br>
+      Outward → Less Filter</p>
+
+      <p><b>Height</b><br>
+      Higher → Louder<br>
+      Lower → Softer</p>
+
+      <a href="https://www.instagram.com/p/DbH1BACxNCG/" target="_blank" rel="noopener noreferrer">
+        📹 Gesture Synth tutorial by Eric Wei on Instagram
+      </a>
+
+    </div>
+  </div>
+
+  <div id="startOverlay">
+    <div class="start-circle">▶</div>
+    <div class="start-text">
+    click to enable audio
+    <br>
+    <br>
+    <small><a href="https://github.com/ericwei97-cloud/gesture-synth" target="_blank" rel="noopener noreferrer">Created by Eric Wei</a> </small>
+  </div>
+  </div>
+</div>
+<script type="module" src="/main.js"></script>
+</body>
+</html>
