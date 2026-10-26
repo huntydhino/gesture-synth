@@ -11,6 +11,7 @@ const chordDisplayEl = document.getElementById("chordDisplay");
 const volumeBarEls = Array.from(document.querySelectorAll(".vol-bar"));
 const qualityDisplayEl = document.getElementById("qualityDisplay");
 const startOverlayEl = document.getElementById("startOverlay");
+const startStatusEl = document.getElementById("startStatus");
 
 function trackClarityEvent(eventName) {
   if (typeof window.clarity === "function") {
@@ -346,6 +347,13 @@ function getRightHandQualityIndex(landmarks) {
 
 // ---- Camera setup ----
 async function setupCamera() {
+  if (!window.isSecureContext) {
+    throw new Error("camera-insecure-context");
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("camera-unavailable");
+  }
+
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: 640, height: 480 },
     audio: false,
@@ -696,12 +704,35 @@ const synth = new SynthEngine();
 
 let hasPlayedFirstSound = false;
 let lastTrackedChord = null;
+let startupInProgress = false;
 
-startOverlayEl.addEventListener("click", (event) => {
-  if (event.target.closest("a")) return;
-  synth.ensureContext();
-  startOverlayEl.style.display = "none";
-  canvasEl.classList.remove("dimmed");
+startOverlayEl.addEventListener("click", async (event) => {
+  if (event.target.closest("a") || startupInProgress) return;
+
+  startupInProgress = true;
+  startStatusEl.textContent = "Starting camera and hand tracking. Allow camera access when your browser asks.";
+  try {
+    synth.ensureContext();
+    await main();
+    startOverlayEl.style.display = "none";
+    canvasEl.classList.remove("dimmed");
+  } catch (error) {
+    console.error("Gesture Synth startup failed:", error);
+    if (error.name === "NotAllowedError") {
+      startStatusEl.textContent = "Camera access was blocked. Allow camera access for this site in your browser settings, then click here to retry.";
+    } else if (error.name === "NotFoundError") {
+      startStatusEl.textContent = "No camera was found. Connect a camera and click here to retry.";
+    } else if (error.name === "NotReadableError") {
+      startStatusEl.textContent = "The camera is in use by another app. Close it and click here to retry.";
+    } else if (error.message === "camera-insecure-context") {
+      startStatusEl.textContent = "Camera access requires HTTPS (or localhost). Open the secure test-site URL and try again.";
+    } else if (error.message === "camera-unavailable") {
+      startStatusEl.textContent = "Camera access is unavailable in this browser. Try a current browser over HTTPS.";
+    } else {
+      startStatusEl.textContent = "Startup failed. Check camera permissions and your connection, then click here to retry.";
+    }
+    startupInProgress = false;
+  }
 });
 
 guideToggleEl.addEventListener("click", () => {
@@ -1330,5 +1361,4 @@ if (rawChord) {
   loop();
 }
 
-main().catch((err) => console.error(err));
 

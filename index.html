@@ -541,6 +541,14 @@ html, body {
   text-align: center;
 }
 
+#startStatus {
+  max-width: min(440px, calc(100vw - 40px));
+  margin: 0;
+  color: var(--muted-text);
+  font: 13px/1.5 monospace;
+  text-align: center;
+}
+
 .start-text a {
   color: var(--text);
   text-decoration: underline;
@@ -683,11 +691,12 @@ html, body {
   <div id="startOverlay">
     <div class="start-circle">▶</div>
     <div class="start-text">
-    click to enable audio
+    click to enable audio and camera
     <br>
     <br>
     <small><a href="https://github.com/ericwei97-cloud/gesture-synth" target="_blank" rel="noopener noreferrer">Created by Eric Wei</a> </small>
   </div>
+    <p id="startStatus" role="status" aria-live="polite"></p>
   </div>
 </div>
 <script type="module" src="/main.js"></script>
