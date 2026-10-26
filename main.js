@@ -12,6 +12,14 @@ const volumeBarEls = Array.from(document.querySelectorAll(".vol-bar"));
 const qualityDisplayEl = document.getElementById("qualityDisplay");
 const startOverlayEl = document.getElementById("startOverlay");
 const startStatusEl = document.getElementById("startStatus");
+const drumButton = document.getElementById("drumButton");
+const drumPanel = document.getElementById("drumPanel");
+const closeDrumPanel = document.getElementById("closeDrumPanel");
+const drumGrid = document.getElementById("drumGrid");
+const drumBpmInput = document.getElementById("drumBpm");
+const drumStatus = document.getElementById("drumStatus");
+const playDrumsButton = document.getElementById("playDrums");
+const stopDrumsButton = document.getElementById("stopDrums");
 
 function trackClarityEvent(eventName) {
   if (typeof window.clarity === "function") {
@@ -600,6 +608,227 @@ class SynthEngine {
 
 const synth = new SynthEngine();
 
+const DRUM_STEPS = 8;
+const DRUM_TRACKS = [
+  { id: "kick", label: "Kick" },
+  { id: "snare", label: "Snare" },
+  { id: "closedHat", label: "Closed Hat" },
+  { id: "openHat", label: "Open Hat" },
+  { id: "tom", label: "Tom" },
+];
+const drumPattern = Object.fromEntries(
+  DRUM_TRACKS.map(({ id }) => [id, Array(DRUM_STEPS).fill(false)])
+);
+let drumMasterGain = null;
+let drumNoiseBuffer = null;
+let drumScheduler = null;
+let drumIsPlaying = false;
+let nextDrumStep = 0;
+let nextDrumStepTime = 0;
+
+function buildDrumGrid() {
+  DRUM_TRACKS.forEach((track) => {
+    const row = document.createElement("div");
+    row.className = "drum-grid-row";
+
+    const label = document.createElement("span");
+    label.className = "drum-track-label";
+    label.textContent = track.label;
+    row.append(label);
+
+    for (let step = 0; step < DRUM_STEPS; step += 1) {
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "drum-step";
+      cell.dataset.track = track.id;
+      cell.dataset.step = String(step);
+      cell.setAttribute("aria-label", `${track.label}, step ${step + 1}`);
+      cell.setAttribute("aria-pressed", "false");
+      row.append(cell);
+    }
+
+    drumGrid.append(row);
+  });
+}
+
+function ensureDrumAudio() {
+  const audioContext = synth.ctx;
+  if (!audioContext) return false;
+
+  if (!drumMasterGain) {
+    drumMasterGain = audioContext.createGain();
+    drumMasterGain.gain.value = 0.75;
+    drumMasterGain.connect(audioContext.destination);
+
+    drumNoiseBuffer = audioContext.createBuffer(
+      1,
+      audioContext.sampleRate,
+      audioContext.sampleRate
+    );
+    const noise = drumNoiseBuffer.getChannelData(0);
+    for (let index = 0; index < noise.length; index += 1) {
+      noise[index] = Math.random() * 2 - 1;
+    }
+  }
+
+  return true;
+}
+
+function playDrumTone(startFrequency, endFrequency, duration, volume, time) {
+  const audioContext = synth.ctx;
+  const oscillator = audioContext.createOscillator();
+  const envelope = audioContext.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(startFrequency, time);
+  oscillator.frequency.exponentialRampToValueAtTime(endFrequency, time + duration);
+  envelope.gain.setValueAtTime(volume, time);
+  envelope.gain.exponentialRampToValueAtTime(0.001, time + duration);
+  oscillator.connect(envelope);
+  envelope.connect(drumMasterGain);
+  oscillator.start(time);
+  oscillator.stop(time + duration + 0.01);
+}
+
+function playDrumNoise(duration, cutoff, volume, time) {
+  const audioContext = synth.ctx;
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const envelope = audioContext.createGain();
+
+  source.buffer = drumNoiseBuffer;
+  filter.type = "highpass";
+  filter.frequency.setValueAtTime(cutoff, time);
+  envelope.gain.setValueAtTime(volume, time);
+  envelope.gain.exponentialRampToValueAtTime(0.001, time + duration);
+  source.connect(filter);
+  filter.connect(envelope);
+  envelope.connect(drumMasterGain);
+  source.start(time);
+  source.stop(time + duration + 0.01);
+}
+
+function playDrumHit(trackId, scheduledTime = synth.ctx.currentTime) {
+  const time = Math.max(scheduledTime, synth.ctx.currentTime + 0.005);
+
+  switch (trackId) {
+    case "kick":
+      playDrumTone(155, 48, 0.22, 0.9, time);
+      break;
+    case "snare":
+      playDrumNoise(0.18, 1400, 0.48, time);
+      playDrumTone(190, 125, 0.1, 0.28, time);
+      break;
+    case "closedHat":
+      playDrumNoise(0.045, 7500, 0.3, time);
+      break;
+    case "openHat":
+      playDrumNoise(0.24, 6500, 0.32, time);
+      break;
+    case "tom":
+      playDrumTone(190, 78, 0.24, 0.65, time);
+      break;
+  }
+}
+
+function setDrumPlayhead(step) {
+  drumGrid.querySelectorAll(".drum-step").forEach((cell) => {
+    cell.classList.toggle("playing-step", Number(cell.dataset.step) === step);
+  });
+}
+
+function getDrumBpm() {
+  const bpm = Number(drumBpmInput.value);
+  const normalizedBpm = Math.max(40, Math.min(240, Math.round(bpm || 120)));
+  drumBpmInput.value = String(normalizedBpm);
+  return normalizedBpm;
+}
+
+function scheduleDrumSteps() {
+  if (!drumIsPlaying || !synth.ctx) return;
+
+  const audioContext = synth.ctx;
+  const scheduleUntil = audioContext.currentTime + 0.12;
+
+  while (nextDrumStepTime < scheduleUntil) {
+    setDrumPlayhead(nextDrumStep);
+    DRUM_TRACKS.forEach(({ id }) => {
+      if (drumPattern[id][nextDrumStep]) {
+        playDrumHit(id, nextDrumStepTime);
+      }
+    });
+
+    nextDrumStep = (nextDrumStep + 1) % DRUM_STEPS;
+    nextDrumStepTime += 60 / getDrumBpm() / 2;
+  }
+}
+
+async function startDrumPlayback() {
+  if (drumIsPlaying) return;
+  if (!ensureDrumAudio()) {
+    drumStatus.textContent = "Start Gesture Synth first to enable audio.";
+    return;
+  }
+
+  if (synth.ctx.state === "suspended") await synth.ctx.resume();
+  drumIsPlaying = true;
+  nextDrumStep = 0;
+  nextDrumStepTime = synth.ctx.currentTime + 0.03;
+  playDrumsButton.disabled = true;
+  drumScheduler = setInterval(scheduleDrumSteps, 25);
+  scheduleDrumSteps();
+}
+
+function stopDrumPlayback() {
+  drumIsPlaying = false;
+  if (drumScheduler !== null) {
+    clearInterval(drumScheduler);
+    drumScheduler = null;
+  }
+  nextDrumStep = 0;
+  playDrumsButton.disabled = false;
+  setDrumPlayhead(-1);
+}
+
+buildDrumGrid();
+
+drumButton.addEventListener("click", () => {
+  const isOpen = drumPanel.classList.toggle("hidden") === false;
+  drumButton.setAttribute("aria-expanded", String(isOpen));
+  if (isOpen) {
+    lyricsPanel.classList.add("hidden");
+    lyricsButton.setAttribute("aria-expanded", "false");
+  } else {
+    stopDrumPlayback();
+  }
+});
+
+closeDrumPanel.addEventListener("click", () => {
+  drumPanel.classList.add("hidden");
+  drumButton.setAttribute("aria-expanded", "false");
+  stopDrumPlayback();
+  drumButton.focus();
+});
+
+drumGrid.addEventListener("click", (event) => {
+  const cell = event.target.closest(".drum-step");
+  if (!cell) return;
+
+  const trackId = cell.dataset.track;
+  const step = Number(cell.dataset.step);
+  const isActive = !drumPattern[trackId][step];
+  drumPattern[trackId][step] = isActive;
+  cell.setAttribute("aria-pressed", String(isActive));
+
+  if (isActive && !drumIsPlaying && ensureDrumAudio()) {
+    playDrumHit(trackId);
+  }
+});
+
+playDrumsButton.addEventListener("click", startDrumPlayback);
+stopDrumsButton.addEventListener("click", stopDrumPlayback);
+drumBpmInput.addEventListener("change", getDrumBpm);
+
 let hasPlayedFirstSound = false;
 let lastTrackedChord = null;
 let startupInProgress = false;
@@ -663,7 +892,12 @@ helpModal.addEventListener("click", (e) => {
 lyricsButton.addEventListener("click", () => {
   const isOpen = lyricsPanel.classList.toggle("hidden") === false;
   lyricsButton.setAttribute("aria-expanded", String(isOpen));
-  if (isOpen) lyricsQuery.focus();
+  if (isOpen) {
+    drumPanel.classList.add("hidden");
+    drumButton.setAttribute("aria-expanded", "false");
+    stopDrumPlayback();
+    lyricsQuery.focus();
+  }
 });
 
 closeLyrics.addEventListener("click", () => {

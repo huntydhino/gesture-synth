@@ -62,6 +62,7 @@ html, body {
 }
 
 #lyricsButton,
+#drumButton,
 #keySelect,
 #toneSelect,
 #guideToggle {
@@ -77,6 +78,13 @@ html, body {
 #lyricsButton {
   position: absolute;
   top: 140px;
+  right: 12px;
+  z-index: 6;
+}
+
+#drumButton {
+  position: absolute;
+  top: 180px;
   right: 12px;
   z-index: 6;
 }
@@ -101,6 +109,156 @@ html, body {
 
 #lyricsPanel.hidden {
   display: none;
+}
+
+#drumPanel {
+  position: absolute;
+  top: 220px;
+  right: 12px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  width: min(500px, calc(100vw - 24px));
+  max-height: min(58vh, 520px);
+  padding: 14px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border: 1px solid var(--dark-raspberry);
+  border-radius: 8px;
+  background: rgba(2,2,2,0.96);
+  color: var(--text);
+  font-family: monospace;
+}
+
+#drumPanel.hidden {
+  display: none;
+}
+
+.drum-panel-header,
+.drum-panel-controls,
+.drum-tempo-control {
+  display: flex;
+  align-items: center;
+}
+
+.drum-panel-header {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.drum-panel-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.drum-panel-controls {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.drum-tempo-control {
+  gap: 6px;
+  margin-right: auto;
+  font-size: 13px;
+}
+
+#drumBpm {
+  width: 64px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 5px 6px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  background: var(--black-forest);
+  color: var(--text);
+  font: 14px monospace;
+}
+
+.drum-panel-controls button,
+#closeDrumPanel {
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  background: var(--dark-teal);
+  color: var(--text);
+  font: 13px monospace;
+  cursor: pointer;
+}
+
+#drumPanel button:focus-visible,
+#drumBpm:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+#closeDrumPanel {
+  width: 32px;
+  min-width: 32px;
+  padding: 2px;
+  border-color: var(--dark-raspberry);
+  background: transparent;
+  font-size: 18px;
+}
+
+.drum-grid-header,
+.drum-grid-row {
+  display: grid;
+  grid-template-columns: 64px repeat(8, minmax(0, 1fr));
+  align-items: center;
+  gap: 4px;
+}
+
+.drum-grid-header {
+  margin-bottom: 6px;
+  color: var(--muted-text);
+  font-size: 11px;
+  text-align: center;
+}
+
+#drumGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drum-track-label {
+  overflow: hidden;
+  color: var(--muted-text);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drum-step {
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.07);
+  cursor: pointer;
+}
+
+.drum-step[aria-pressed="true"] {
+  border-color: var(--dark-teal);
+  background: var(--dark-teal);
+}
+
+.drum-step.playing-step,
+.drum-step[aria-pressed="true"].playing-step {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+#drumStatus {
+  min-height: 16px;
+  margin: 10px 0 0;
+  color: var(--muted-text);
+  font-size: 11px;
 }
 
 .lyrics-header {
@@ -317,6 +475,16 @@ html, body {
     top: 12px;
     right: 12px;
     max-height: calc(100dvh - 24px);
+  }
+
+  #drumPanel {
+    max-height: calc(100dvh - 232px);
+  }
+
+  .drum-grid-header,
+  .drum-grid-row {
+    grid-template-columns: 58px repeat(8, minmax(0, 1fr));
+    gap: 3px;
   }
 }
 
@@ -576,6 +744,7 @@ html, body {
   <div id="distortionDisplay">Filter: 0%</div>
 
   <button id="lyricsButton" type="button" aria-expanded="false" aria-controls="lyricsPanel">Lyrics</button>
+  <button id="drumButton" type="button" aria-expanded="false" aria-controls="drumPanel">Drums</button>
   <section id="lyricsPanel" class="hidden" aria-label="Lyrics search and reader">
     <header class="lyrics-header">
       <h2>Find lyrics</h2>
@@ -587,6 +756,28 @@ html, body {
     </form>
     <p id="lyricsStatus" role="status" aria-live="polite">Search LRCLIB by song or artist.</p>
     <div id="lyricsResults" aria-label="Search results"></div>
+  </section>
+
+  <section id="drumPanel" class="hidden" aria-label="Drum step sequencer">
+    <header class="drum-panel-header">
+      <h2>Drum pattern</h2>
+      <button id="closeDrumPanel" type="button" aria-label="Close drum sequencer">×</button>
+    </header>
+    <div class="drum-panel-controls">
+      <label class="drum-tempo-control" for="drumBpm">
+        BPM
+        <input id="drumBpm" type="number" min="40" max="240" step="1" value="120" inputmode="numeric">
+      </label>
+      <button id="playDrums" type="button">Play</button>
+      <button id="stopDrums" type="button">Stop</button>
+    </div>
+    <div class="drum-grid-header" aria-hidden="true">
+      <span></span>
+      <span>1</span><span>2</span><span>3</span><span>4</span>
+      <span>5</span><span>6</span><span>7</span><span>8</span>
+    </div>
+    <div id="drumGrid" aria-label="Eight-step drum pattern"></div>
+    <p id="drumStatus" role="status" aria-live="polite"></p>
   </section>
 
   <section id="karaokeOverlay" class="hidden" aria-label="Selected lyrics">
