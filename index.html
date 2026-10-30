@@ -77,21 +77,21 @@ html, body {
 
 #lyricsButton {
   position: absolute;
-  top: 140px;
+  top: 154px;
   right: 12px;
   z-index: 6;
 }
 
 #drumButton {
   position: absolute;
-  top: 180px;
+  top: 194px;
   right: 12px;
   z-index: 6;
 }
 
 #lyricsPanel {
   position: absolute;
-  top: 180px;
+  top: 194px;
   right: 12px;
   z-index: 8;
   display: flex;
@@ -113,7 +113,7 @@ html, body {
 
 #drumPanel {
   position: absolute;
-  top: 220px;
+  top: 234px;
   right: 12px;
   z-index: 12;
   display: flex;
@@ -636,13 +636,24 @@ html, body {
 /* Add this style rule inside your <style> section */
 #distortionDisplay {
   position: absolute;
-  top: 105px; /* Sits perfectly below your 8 volume bars */
+  top: 102px; /* Sits below volume bars */
   right: 12px;
   color: var(--text);
   font-family: monospace;
-  font-size: 14px;
+  font-size: 13px;
   text-align: right;
   pointer-events: none;
+}
+#faceTiltDisplay {
+  position: absolute;
+  top: 124px; /* Sits below filter display */
+  right: 12px;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 13px;
+  text-align: right;
+  pointer-events: none;
+  transition: color 150ms ease;
 }
 #qualityDisplay {
   position: absolute;
@@ -753,6 +764,7 @@ html, body {
 <div id="gestureGuide" class="hidden"></div>
   <div id="qualityDisplay">--</div>
   <div id="distortionDisplay">Filter: 0%</div>
+  <div id="faceTiltDisplay">Head: --</div>
 
   <button id="lyricsButton" type="button" aria-expanded="false" aria-controls="lyricsPanel">Lyrics</button>
   <button id="drumButton" type="button" aria-expanded="false" aria-controls="drumPanel">Drums</button>
@@ -846,6 +858,11 @@ html, body {
       <p><b>Height</b><br>
       Higher → Louder<br>
       Lower → Softer</p>
+
+      <h3>Head Tracking (Face Mesh)</h3>
+      <p><b>Tilt Left</b> → Pan Audio Left & Neon Pink Reticle<br>
+      <b>Tilt Right</b> → Pan Audio Right & Neon Green Reticle<br>
+      <b>Level / Center</b> → Balanced Stereo & Cyan Reticle</p>
 
       <a href="https://www.instagram.com/p/DbH1BACxNCG/" target="_blank" rel="noopener noreferrer">
         📹 Gesture Synth tutorial by Eric Wei on Instagram
