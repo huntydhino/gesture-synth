@@ -1219,219 +1219,64 @@ function drawFaceOverlay(ctx, faceLandmarks, headTiltData, srcW, srcH, sx, sy, s
     };
   };
 
-  const { angleDeg, tiltFactor, direction } = headTiltData;
+  const { tiltFactor, direction } = headTiltData;
   const absTilt = Math.abs(tiltFactor);
 
-  // Dynamic theme colors reacting to head tilt
-  let primaryColor, glowColor, badgeBg, tiltText;
+  // Dynamic dot color & glow reacting to head tilt
+  let dotColor, glowColor;
   if (direction === "center") {
-    primaryColor = "rgba(0, 240, 255, 0.75)";
+    dotColor = "rgba(0, 240, 255, 0.75)";
     glowColor = "#00f0ff";
-    badgeBg = "rgba(0, 50, 60, 0.75)";
-    tiltText = "• LEVEL •";
   } else if (direction === "left") {
-    primaryColor = `rgba(255, 42, 133, ${0.75 + absTilt * 0.25})`;
+    dotColor = `rgba(255, 42, 133, ${0.75 + absTilt * 0.25})`;
     glowColor = "#ff2a85";
-    badgeBg = "rgba(94, 0, 53, 0.8)";
-    tiltText = `◀ TILT L ${Math.round(Math.abs(angleDeg))}°`;
   } else {
-    primaryColor = `rgba(0, 255, 157, ${0.75 + absTilt * 0.25})`;
+    dotColor = `rgba(0, 255, 157, ${0.75 + absTilt * 0.25})`;
     glowColor = "#00ff9d";
-    badgeBg = "rgba(2, 54, 24, 0.8)";
-    tiltText = `TILT R ${Math.round(Math.abs(angleDeg))}° ▶`;
   }
 
-  // 1. Simple Facial Keypoints & Contours
-  const rightEyeIndices = [33, 160, 158, 133, 153, 144];
-  const leftEyeIndices = [263, 387, 385, 362, 380, 373];
-  const rightEyebrowIndices = [70, 63, 105, 66, 107];
-  const leftEyebrowIndices = [336, 296, 334, 293, 300];
-  const noseIndices = [168, 6, 1];
-  const lipIndices = [61, 39, 0, 269, 291, 405, 17, 181];
+  // Key tracked value points for head tracking
+  const trackedIndices = [
+    33, 133,   // Right eye outer & inner corners
+    263, 362,  // Left eye outer & inner corners
+    1,         // Nose tip
+    10,        // Forehead center
+    152,       // Chin center
+    234,       // Right cheek
+    454,       // Left cheek
+    61, 291,   // Mouth corners
+  ];
+
+  const dotRadius = 4 + absTilt * 1.5;
 
   ctx.save();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = primaryColor;
-  ctx.fillStyle = primaryColor;
+  ctx.fillStyle = dotColor;
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 6 + absTilt * 8;
+  ctx.shadowBlur = absTilt > 0.1 ? 4 + absTilt * 6 : 0;
 
-  const drawPath = (indices, closed = true) => {
-    ctx.beginPath();
-    indices.forEach((idx, i) => {
-      const pt = toCanvas(faceLandmarks[idx]);
-      if (i === 0) ctx.moveTo(pt.x, pt.y);
-      else ctx.lineTo(pt.x, pt.y);
-    });
-    if (closed) ctx.closePath();
-    ctx.stroke();
-  };
-
-  // Draw eyes and eyebrows
-  drawPath(rightEyeIndices, true);
-  drawPath(leftEyeIndices, true);
-  drawPath(rightEyebrowIndices, false);
-  drawPath(leftEyebrowIndices, false);
-
-  // Draw nose bridge and tip
-  drawPath(noseIndices, false);
-  const noseTip = toCanvas(faceLandmarks[1]);
-  ctx.beginPath();
-  ctx.arc(noseTip.x, noseTip.y, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Draw lips
-  drawPath(lipIndices, true);
-
-  // Draw eye pupil center dots
-  const eyeR = toCanvas({
-    x: (faceLandmarks[33].x + faceLandmarks[133].x) * 0.5,
-    y: (faceLandmarks[33].y + faceLandmarks[133].y) * 0.5,
-  });
-  const eyeL = toCanvas({
-    x: (faceLandmarks[263].x + faceLandmarks[362].x) * 0.5,
-    y: (faceLandmarks[263].y + faceLandmarks[362].y) * 0.5,
-  });
-  ctx.beginPath();
-  ctx.arc(eyeR.x, eyeR.y, 2.5, 0, Math.PI * 2);
-  ctx.arc(eyeL.x, eyeL.y, 2.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-
-  // 2. Face tracking reticle & tilt horizon
-  const forehead = toCanvas(faceLandmarks[10]);
-  const chin = toCanvas(faceLandmarks[152]);
-  const cheekR = toCanvas(faceLandmarks[234]);
-  const cheekL = toCanvas(faceLandmarks[454]);
-
-  const centerX = (cheekR.x + cheekL.x) * 0.5;
-  const centerY = (forehead.y + chin.y) * 0.5;
-  const radiusX = Math.abs(cheekL.x - cheekR.x) * 0.65;
-  const radiusY = Math.abs(chin.y - forehead.y) * 0.65;
-  const radius = Math.max(radiusX, radiusY, 45);
-
-  ctx.save();
-  ctx.translate(centerX, centerY);
-
-  // Corner brackets (camera-style face tracker)
-  const bW = radius * 1.1;
-  const bH = radius * 1.25;
-  const cLen = Math.min(22, radius * 0.3);
-
-  ctx.strokeStyle = primaryColor;
-  ctx.lineWidth = 2;
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 8 + absTilt * 8;
-
-  // Top-left
-  ctx.beginPath();
-  ctx.moveTo(-bW, -bH + cLen);
-  ctx.lineTo(-bW, -bH);
-  ctx.lineTo(-bW + cLen, -bH);
-  // Top-right
-  ctx.moveTo(bW - cLen, -bH);
-  ctx.lineTo(bW, -bH);
-  ctx.lineTo(bW, -bH + cLen);
-  // Bottom-left
-  ctx.moveTo(-bW, bH - cLen);
-  ctx.lineTo(-bW, bH);
-  ctx.lineTo(-bW + cLen, bH);
-  // Bottom-right
-  ctx.moveTo(bW - cLen, bH);
-  ctx.lineTo(bW, bH);
-  ctx.lineTo(bW, bH - cLen);
-  ctx.stroke();
-
-  // Rotating artificial horizon & tilt gauge
-  const tiltRad = (angleDeg * Math.PI) / 180;
-  ctx.save();
-  ctx.rotate(tiltRad);
-
-  // Horizon bar across face
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = primaryColor;
-  ctx.beginPath();
-  ctx.moveTo(-bW - 14, 0);
-  ctx.lineTo(-bW * 0.45, 0);
-  ctx.moveTo(bW * 0.45, 0);
-  ctx.lineTo(bW + 14, 0);
-  ctx.stroke();
-
-  // Center vertical level notch
-  ctx.beginPath();
-  ctx.moveTo(0, -6);
-  ctx.lineTo(0, 6);
-  ctx.stroke();
-
-  // Degree tick marks
-  [-bW * 0.8, -bW * 0.6, bW * 0.6, bW * 0.8].forEach((x) => {
-    ctx.beginPath();
-    ctx.moveTo(x, -3);
-    ctx.lineTo(x, 3);
-    ctx.stroke();
-  });
-
-  // Dynamic reactive tilt arc
-  if (absTilt > 0.05) {
-    ctx.lineWidth = 3.5;
-    ctx.strokeStyle = primaryColor;
-    ctx.beginPath();
-    const arcRadius = bW + 10;
-    if (direction === "left") {
-      ctx.arc(0, 0, arcRadius, Math.PI - 0.2, Math.PI - 0.2 - absTilt * 0.8, true);
-    } else {
-      ctx.arc(0, 0, arcRadius, 0.2, 0.2 + absTilt * 0.8, false);
+  // Draw dots at the tracked value points
+  for (const idx of trackedIndices) {
+    const pt = faceLandmarks[idx];
+    if (pt) {
+      const { x, y } = toCanvas(pt);
+      ctx.beginPath();
+      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+      ctx.fill();
     }
-    ctx.stroke();
   }
-  ctx.restore();
 
-  // Un-mirrored status badge (renders right-side-up and un-mirrored)
-  ctx.save();
-  ctx.translate(0, -bH - 18);
-  ctx.scale(-1, 1);
+  // Draw eye centers (calculated tilt tracking points)
+  if (headTiltData.eyeR && headTiltData.eyeL) {
+    const ptR = toCanvas(headTiltData.eyeR);
+    const ptL = toCanvas(headTiltData.eyeL);
 
-  const badgeWidth = 110;
-  const badgeHeight = 22;
-  ctx.fillStyle = badgeBg;
-  ctx.strokeStyle = primaryColor;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  if (ctx.roundRect) {
-    ctx.roundRect(-badgeWidth / 2, -badgeHeight / 2, badgeWidth, badgeHeight, 4);
-  } else {
-    ctx.rect(-badgeWidth / 2, -badgeHeight / 2, badgeWidth, badgeHeight);
+    ctx.beginPath();
+    ctx.arc(ptR.x, ptR.y, dotRadius * 0.85, 0, Math.PI * 2);
+    ctx.arc(ptL.x, ptL.y, dotRadius * 0.85, 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "11px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(tiltText, 0, 1);
-  ctx.restore();
 
   ctx.restore();
-
-  // 3. Subtle ambient edge aura on video feed reacting to head tilt
-  if (absTilt > 0.25) {
-    ctx.save();
-    const gradient = ctx.createRadialGradient(
-      direction === "left" ? canvasWidth : 0,
-      centerY,
-      10,
-      direction === "left" ? canvasWidth : 0,
-      centerY,
-      canvasWidth * 0.45
-    );
-    gradient.addColorStop(0, primaryColor.replace(/[\d.]+\)$/, `${absTilt * 0.22})`));
-    gradient.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    ctx.restore();
-  }
 }
 
 function drawFrame(handResults, faceResults, canvasWidth, canvasHeight, filterTilt = 0, volume01 = 0, headTiltData = null) {
