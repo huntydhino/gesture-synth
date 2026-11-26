@@ -723,10 +723,477 @@ html, body {
 #overlay.dimmed {
   filter: grayscale(1) brightness(0.6);
 }
+
+#pedalsButton {
+  position: absolute;
+  top: 234px;
+  right: 12px;
+  z-index: 12;
+  padding: 9px 13px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 5px;
+  background: var(--black-forest);
+  color: var(--text);
+  font: 700 13px monospace;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+#pedalsView {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  overflow: auto;
+  background: var(--black);
+  color: var(--text);
+  font: 14px/1.45 monospace;
+}
+
+#pedalsView.hidden {
+  display: none;
+}
+
+.pedals-shell {
+  width: min(1120px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 22px clamp(14px, 3vw, 36px) 36px;
+  box-sizing: border-box;
+}
+
+.pedals-header,
+.pedals-toolbar,
+.pedals-meter-heading,
+.pedals-effect-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pedals-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--dark-teal);
+}
+
+.pedals-brand {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(24px, 4vw, 34px);
+  letter-spacing: 0.02em;
+}
+
+.pedals-brand span {
+  color: var(--dark-teal);
+}
+
+.pedals-kicker,
+.pedals-caption {
+  color: var(--muted-text);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pedals-header button,
+.pedals-toolbar button,
+.pedals-effect-heading button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 5px;
+  background: var(--crimson-violet);
+  color: var(--text);
+  font: 600 12px monospace;
+  cursor: pointer;
+}
+
+.pedals-toolbar {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.pedals-device {
+  display: grid;
+  flex: 1 1 320px;
+  gap: 6px;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+#pedalsInput {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 5px;
+  background: var(--black-forest);
+  color: var(--text);
+}
+
+#pedalsStart {
+  border-color: var(--dark-teal);
+  background: var(--dark-teal);
+  color: var(--text);
+}
+
+#pedalsStatus {
+  min-height: 20px;
+  margin: 0 0 18px;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+#pedalsStatus[data-state="error"] {
+  color: #ff8e9e;
+}
+
+.pedals-monitors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.pedals-meter {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(94,0,53,0.42), rgba(2,54,24,0.42) 58%, rgba(2,2,2,0.92));
+}
+
+.pedals-meter-heading {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pedals-meter-heading span:last-child {
+  color: var(--text);
+  font: 11px monospace;
+}
+
+.pedals-meter canvas {
+  display: block;
+  width: 100%;
+  height: 94px;
+  border-radius: 4px;
+  background: rgba(2,2,2,0.8);
+}
+
+.pedals-level {
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--crimson-violet);
+}
+
+.pedals-level span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--dark-teal);
+  transition: width 60ms linear;
+}
+
+.pedals-level span.clipping {
+  background: #ff4058;
+}
+
+.pedals-rack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pedals-effect {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(94,0,53,0.62), rgba(2,54,24,0.6) 58%, rgba(2,2,2,0.96));
+}
+
+.pedals-effect-heading {
+  margin-bottom: 14px;
+}
+
+.pedals-effect-heading h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.pedals-effect-heading button {
+  min-height: 28px;
+  padding: 4px 8px;
+  color: var(--muted-text);
+  font-size: 10px;
+}
+
+.pedals-effect-heading button[aria-pressed="true"] {
+  border-color: var(--dark-teal);
+  color: var(--text);
+}
+
+.pedals-knob {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 7px 8px;
+  margin: 10px 0;
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+.pedals-knob output {
+  color: var(--text);
+  font: 11px monospace;
+}
+
+.pedals-knob input {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 4px;
+  accent-color: var(--dark-teal);
+  cursor: pointer;
+}
+
+.pedals-rack [data-bypassed="true"] .pedals-knob {
+  opacity: 0.48;
+}
+
+.pedals-note {
+  margin: 16px 0 0;
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+#pedalsClipTools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 6px;
+  background: rgba(94,0,53,0.2);
+}
+
+#pedalsClipTools label {
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+#pedalsClipTools button,
+.pedals-file-label {
+  padding: 7px 10px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 4px;
+  background: var(--crimson-violet);
+  color: var(--text);
+  font: 12px monospace;
+  cursor: pointer;
+}
+
+#pedalsClipTools button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#pedalsClipStatus {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+.pedals-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+#clipControls {
+  position: absolute;
+  top: 274px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 5px;
+  background: rgba(2,2,2,0.82);
+  color: var(--text);
+  font: 12px monospace;
+}
+
+#clipDuration {
+  width: 46px;
+  padding: 4px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 3px;
+  background: var(--black-forest);
+  color: var(--text);
+  font: 12px monospace;
+}
+
+#saveRecentClip {
+  padding: 6px 8px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 3px;
+  background: var(--crimson-violet);
+  color: var(--text);
+  font: 12px monospace;
+  cursor: pointer;
+}
+
+#saveRecentClip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#clipStatus {
+  position: absolute;
+  top: 312px;
+  right: 12px;
+  z-index: 6;
+  max-width: min(340px, calc(100vw - 24px));
+  margin: 0;
+  color: var(--muted-text);
+  font: 11px/1.4 monospace;
+  text-align: right;
+  pointer-events: none;
+}
+
+#pedalsClipStatus[data-state="error"],
+#clipStatus[data-state="error"] {
+  color: #ff8e9e;
+}
+
+@media (max-width: 760px) {
+  .pedals-rack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  #pedalsButton {
+    top: 234px;
+  }
+
+  #clipControls {
+    top: 274px;
+  }
+
+  .pedals-monitors,
+  .pedals-rack {
+    grid-template-columns: 1fr;
+  }
+
+  .pedals-header {
+    align-items: flex-start;
+  }
+}
 </style>
 </head>
 <body>
 <div id="stage">
+  <button id="pedalsButton" type="button" aria-controls="pedalsView" aria-expanded="false">PedalsFX</button>
+  <div id="clipControls" aria-label="Recent Gesture Synth clip">
+    <label for="clipDuration">Last</label>
+    <input id="clipDuration" type="number" min="1" max="30" step="1" value="10" inputmode="numeric" aria-label="Clip length in seconds">
+    <span>sec</span>
+    <button id="saveRecentClip" type="button" disabled>Save clip</button>
+  </div>
+  <p id="clipStatus" role="status" aria-live="polite">Start Gesture Synth to capture recent audio.</p>
+  <section id="pedalsView" class="hidden" aria-label="PedalsFX bass effects processor">
+    <div class="pedals-shell">
+      <header class="pedals-header">
+        <div>
+          <div class="pedals-kicker">Real-time bass effects</div>
+          <h1 class="pedals-brand">Pedals<span>FX</span></h1>
+        </div>
+        <button id="pedalsClose" type="button">← Back to Gesture Synth</button>
+      </header>
+      <div class="pedals-toolbar">
+        <label class="pedals-device" for="pedalsInput">
+          Audio input
+          <select id="pedalsInput" aria-label="Audio input device">
+            <option value="">Default audio input</option>
+          </select>
+        </label>
+        <button id="pedalsStart" type="button">Start Audio Engine</button>
+      </div>
+      <div id="pedalsClipTools" aria-label="Gesture Synth clip looper">
+        <label class="pedals-file-label" for="pedalsClipFile">Import gesture clip</label>
+        <input id="pedalsClipFile" class="pedals-file-input" type="file" accept="audio/*,.wav">
+        <button id="pedalsClipLoop" type="button" disabled>Loop clip</button>
+        <p id="pedalsClipStatus" role="status" aria-live="polite">Start the engine to import and loop a saved WAV clip.</p>
+      </div>
+      <p id="pedalsStatus" role="status" aria-live="polite">Choose your interface, connect headphones, then start the engine.</p>
+      <div class="pedals-monitors">
+        <section class="pedals-meter" aria-label="Input level monitor">
+          <div class="pedals-meter-heading"><span>INPUT / PREAMP</span><span id="pedalsInputReadout">−∞ dBFS</span></div>
+          <canvas id="pedalsInputScope" aria-label="Input waveform"></canvas>
+          <div class="pedals-level" aria-label="Input peak level"><span id="pedalsInputLevel"></span></div>
+        </section>
+        <section class="pedals-meter" aria-label="Output level monitor">
+          <div class="pedals-meter-heading"><span>OUTPUT / WET</span><span id="pedalsOutputReadout">−∞ dBFS</span></div>
+          <canvas id="pedalsOutputScope" aria-label="Processed waveform"></canvas>
+          <div class="pedals-level" aria-label="Output peak level"><span id="pedalsOutputLevel"></span></div>
+        </section>
+      </div>
+      <div class="pedals-rack">
+        <section class="pedals-effect" data-effect="preamp">
+          <div class="pedals-effect-heading"><h2>Input trim</h2></div>
+          <label class="pedals-knob"><span>Preamp gain</span><output>0 dB</output><input data-param="preamp" type="range" min="-24" max="12" value="0" step="1"></label>
+        </section>
+        <section class="pedals-effect" data-effect="compressor">
+          <div class="pedals-effect-heading"><h2>Compressor</h2><button type="button" data-toggle="compressor" aria-pressed="true">ON</button></div>
+          <label class="pedals-knob"><span>Threshold</span><output>−24 dB</output><input data-param="threshold" type="range" min="-48" max="0" value="-24" step="1"></label>
+          <label class="pedals-knob"><span>Ratio</span><output>4:1</output><input data-param="ratio" type="range" min="1" max="12" value="4" step="0.5"></label>
+          <label class="pedals-knob"><span>Attack</span><output>10 ms</output><input data-param="attack" type="range" min="1" max="100" value="10" step="1"></label>
+          <label class="pedals-knob"><span>Release</span><output>180 ms</output><input data-param="release" type="range" min="20" max="500" value="180" step="5"></label>
+        </section>
+        <section class="pedals-effect" data-effect="drive">
+          <div class="pedals-effect-heading"><h2>Drive</h2><button type="button" data-toggle="drive" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Drive</span><output>12%</output><input data-param="drive" type="range" min="0" max="100" value="12" step="1"></label>
+          <label class="pedals-knob"><span>Tone</span><output>3.2 kHz</output><input data-param="driveTone" type="range" min="800" max="8000" value="3200" step="100"></label>
+        </section>
+        <section class="pedals-effect" data-effect="eq">
+          <div class="pedals-effect-heading"><h2>3-band EQ</h2><button type="button" data-toggle="eq" aria-pressed="true">ON</button></div>
+          <label class="pedals-knob"><span>Low · 100 Hz</span><output>0 dB</output><input data-param="low" type="range" min="-12" max="12" value="0" step="1"></label>
+          <label class="pedals-knob"><span>Mid · 800 Hz</span><output>0 dB</output><input data-param="mid" type="range" min="-12" max="12" value="0" step="1"></label>
+          <label class="pedals-knob"><span>High · 4 kHz</span><output>0 dB</output><input data-param="high" type="range" min="-12" max="12" value="0" step="1"></label>
+        </section>
+        <section class="pedals-effect" data-effect="chorus">
+          <div class="pedals-effect-heading"><h2>Chorus</h2><button type="button" data-toggle="chorus" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Rate</span><output>0.8 Hz</output><input data-param="chorusRate" type="range" min="0.1" max="4" value="0.8" step="0.1"></label>
+          <label class="pedals-knob"><span>Depth</span><output>12 ms</output><input data-param="chorusDepth" type="range" min="2" max="25" value="12" step="1"></label>
+        </section>
+        <section class="pedals-effect" data-effect="cab">
+          <div class="pedals-effect-heading"><h2>Cabinet</h2><button type="button" data-toggle="cab" aria-pressed="true">ON</button></div>
+          <label class="pedals-knob"><span>Low cut</span><output>35 Hz</output><input data-param="cabLow" type="range" min="20" max="100" value="35" step="1"></label>
+          <label class="pedals-knob"><span>High cut</span><output>4.5 kHz</output><input data-param="cabHigh" type="range" min="1500" max="10000" value="4500" step="100"></label>
+        </section>
+        <section class="pedals-effect" data-effect="master">
+          <div class="pedals-effect-heading"><h2>Master output</h2></div>
+          <label class="pedals-knob"><span>Level</span><output>35%</output><input data-param="master" type="range" min="0" max="100" value="35" step="1"></label>
+        </section>
+      </div>
+      <p class="pedals-note">Audio is processed locally in your browser. The input is never routed directly to the output; headphones are recommended to prevent acoustic feedback.</p>
+    </div>
+  </section>
   <video id="webcam" autoplay playsinline muted></video>
   <canvas id="overlay" class="dimmed"></canvas>
   <div id="chordDisplay">--</div>
@@ -882,6 +1349,7 @@ html, body {
     <p id="startStatus" role="status" aria-live="polite"></p>
   </div>
 </div>
+<script type="module" src="/pedals.js"></script>
 <script type="module" src="/main.js"></script>
 </body>
 </html>

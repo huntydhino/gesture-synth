@@ -13,6 +13,8 @@ https://www.instagram.com/p/DbH1BACxNCG/
 - Head tilt controls stereo panning and dynamic HUD overlay reaction
 - Real-time hand and face tracking with MediaPipe
 - Web Audio API synthesis
+- PedalsFX bass effects processor with selectable audio input, real-time effects, and input/output meters
+- Save a configurable recent Gesture Synth audio clip as WAV and loop it through PedalsFX
 
 ## Built With
 - JavaScript

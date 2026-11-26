@@ -1,3 +1,4 @@
+import clipCaptureProcessorUrl from "./clip-capture-processor.js?url&no-inline";
 import { HandLandmarker, FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 // ---- DOM references ----
@@ -18,6 +19,9 @@ const qualityDisplayEl = document.getElementById("qualityDisplay");
 const faceTiltDisplayEl = document.getElementById("faceTiltDisplay");
 const startOverlayEl = document.getElementById("startOverlay");
 const startStatusEl = document.getElementById("startStatus");
+const clipDurationInput = document.getElementById("clipDuration");
+const saveRecentClipButton = document.getElementById("saveRecentClip");
+const clipStatus = document.getElementById("clipStatus");
 const drumButton = document.getElementById("drumButton");
 const drumPanel = document.getElementById("drumPanel");
 const closeDrumPanel = document.getElementById("closeDrumPanel");
@@ -526,6 +530,7 @@ class SynthEngine {
     this.waveShaper = null;
     this.masterGain = null;
     this.panner = null;
+    this.outputGain = null;
     this.oscillators = [];
     this.currentKey = null;
   }
@@ -545,6 +550,7 @@ class SynthEngine {
 
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0;
+    this.outputGain = this.ctx.createGain();
 
     // Signal chain: oscillators -> waveshaper -> filter -> masterGain -> panner -> output
     if (this.ctx.createStereoPanner) {
@@ -553,12 +559,13 @@ class SynthEngine {
       this.waveShaper.connect(this.filter);
       this.filter.connect(this.masterGain);
       this.masterGain.connect(this.panner);
-      this.panner.connect(this.ctx.destination);
+      this.panner.connect(this.outputGain);
     } else {
       this.waveShaper.connect(this.filter);
       this.filter.connect(this.masterGain);
-      this.masterGain.connect(this.ctx.destination);
+      this.masterGain.connect(this.outputGain);
     }
+    this.outputGain.connect(this.ctx.destination);
   }
 
   updateHeadTilt(tiltFactor) {
@@ -692,7 +699,7 @@ function ensureDrumAudio() {
   if (!drumMasterGain) {
     drumMasterGain = audioContext.createGain();
     drumMasterGain.gain.value = 0.75;
-    drumMasterGain.connect(audioContext.destination);
+    drumMasterGain.connect(synth.outputGain);
 
     drumNoiseBuffer = audioContext.createBuffer(
       1,
@@ -867,6 +874,112 @@ drumBpmInput.addEventListener("change", getDrumBpm);
 let hasPlayedFirstSound = false;
 let lastTrackedChord = null;
 let startupInProgress = false;
+let clipCaptureNode = null;
+let clipCaptureSilentGain = null;
+let requestedClipFrames = 0;
+
+function setClipStatus(message, isError = false) {
+  clipStatus.textContent = message;
+  clipStatus.dataset.state = isError ? "error" : "ready";
+}
+
+function encodeWav(left, right, sampleRate) {
+  const channelCount = 2;
+  const bytesPerSample = 2;
+  const dataLength = left.length * channelCount * bytesPerSample;
+  const buffer = new ArrayBuffer(44 + dataLength);
+  const view = new DataView(buffer);
+  const writeText = (offset, text) => {
+    for (let index = 0; index < text.length; index += 1) {
+      view.setUint8(offset + index, text.charCodeAt(index));
+    }
+  };
+
+  writeText(0, "RIFF");
+  view.setUint32(4, 36 + dataLength, true);
+  writeText(8, "WAVE");
+  writeText(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channelCount, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * channelCount * bytesPerSample, true);
+  view.setUint16(32, channelCount * bytesPerSample, true);
+  view.setUint16(34, bytesPerSample * 8, true);
+  writeText(36, "data");
+  view.setUint32(40, dataLength, true);
+
+  let offset = 44;
+  for (let index = 0; index < left.length; index += 1) {
+    const leftSample = Math.max(-1, Math.min(1, left[index]));
+    const rightSample = Math.max(-1, Math.min(1, right[index]));
+    view.setInt16(offset, leftSample < 0 ? leftSample * 0x8000 : leftSample * 0x7fff, true);
+    view.setInt16(offset + 2, rightSample < 0 ? rightSample * 0x8000 : rightSample * 0x7fff, true);
+    offset += 4;
+  }
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+function saveWavClip({ left, right, sampleRate, frames }) {
+  saveRecentClipButton.disabled = false;
+  if (frames < requestedClipFrames) {
+    const capturedSeconds = (frames / sampleRate).toFixed(1);
+    setClipStatus(`Only ${capturedSeconds}s captured so far. Keep Gesture Synth running, then try again.`);
+    return;
+  }
+
+  const blob = encodeWav(new Float32Array(left), new Float32Array(right), sampleRate);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  link.href = url;
+  link.download = `gesture-synth-${timestamp}.wav`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+  setClipStatus(`Saved ${(frames / sampleRate).toFixed(0)}s WAV clip to your downloads.`);
+}
+
+async function initializeRecentClipCapture() {
+  if (clipCaptureNode) return;
+  if (!synth.ctx.audioWorklet || typeof AudioWorkletNode === "undefined") {
+    throw new Error("Recent clip capture requires a browser with AudioWorklet support.");
+  }
+
+  await synth.ctx.audioWorklet.addModule(clipCaptureProcessorUrl);
+  clipCaptureNode = new AudioWorkletNode(synth.ctx, "recent-clip-capture", {
+    numberOfInputs: 1,
+    numberOfOutputs: 1,
+    outputChannelCount: [2],
+    channelCount: 2,
+    channelCountMode: "explicit",
+  });
+  clipCaptureNode.port.onmessage = (event) => {
+    if (event.data.type === "clip-data") saveWavClip(event.data);
+  };
+  clipCaptureSilentGain = synth.ctx.createGain();
+  clipCaptureSilentGain.gain.value = 0;
+  clipCaptureNode.connect(clipCaptureSilentGain);
+  clipCaptureSilentGain.connect(synth.ctx.destination);
+  synth.outputGain.connect(clipCaptureNode);
+  saveRecentClipButton.disabled = false;
+  setClipStatus("Rolling clip buffer ready. Set a duration and save the recent synth output.");
+}
+
+saveRecentClipButton.addEventListener("click", () => {
+  const seconds = Number(clipDurationInput.value);
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 30) {
+    setClipStatus("Choose a clip length from 1 to 30 seconds.", true);
+    return;
+  }
+  if (!clipCaptureNode || !synth.ctx) {
+    setClipStatus("Start Gesture Synth before saving a clip.", true);
+    return;
+  }
+  requestedClipFrames = seconds * synth.ctx.sampleRate;
+  saveRecentClipButton.disabled = true;
+  setClipStatus(`Preparing the last ${seconds} seconds…`);
+  clipCaptureNode.port.postMessage({ type: "get-clip", frames: requestedClipFrames });
+});
 
 startOverlayEl.addEventListener("click", async (event) => {
   if (event.target.closest("a") || startupInProgress) return;
@@ -875,6 +988,13 @@ startOverlayEl.addEventListener("click", async (event) => {
   startStatusEl.textContent = "Starting camera, hand tracking, and face tracking. Allow camera access when your browser asks.";
   try {
     synth.ensureContext();
+    try {
+      await initializeRecentClipCapture();
+    } catch (error) {
+      console.error("Recent clip capture could not start:", error);
+      saveRecentClipButton.disabled = true;
+      setClipStatus(error.message, true);
+    }
     await main();
     startOverlayEl.style.display = "none";
     canvasEl.classList.remove("dimmed");
