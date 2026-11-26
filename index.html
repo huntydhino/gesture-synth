@@ -809,6 +809,7 @@ html, body {
 }
 
 .pedals-toolbar {
+  align-items: flex-end;
   justify-content: flex-start;
   flex-wrap: wrap;
   margin: 20px 0;
@@ -861,7 +862,7 @@ html, body {
   padding: 14px;
   border: 1px solid var(--dark-teal);
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(94,0,53,0.42), rgba(2,54,24,0.42) 58%, rgba(2,2,2,0.92));
+  background: #090909;
 }
 
 .pedals-meter-heading {
@@ -915,7 +916,7 @@ html, body {
   padding: 14px;
   border: 1px solid var(--dark-teal);
   border-radius: 8px;
-  background: linear-gradient(145deg, rgba(94,0,53,0.62), rgba(2,54,24,0.6) 58%, rgba(2,2,2,0.96));
+  background: #090909;
 }
 
 .pedals-effect-heading {
@@ -981,7 +982,29 @@ html, body {
   padding: 12px;
   border: 1px solid var(--dark-teal);
   border-radius: 6px;
-  background: rgba(94,0,53,0.2);
+  background: #090909;
+}
+
+#pedalsImportTools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--dark-teal);
+  border-radius: 6px;
+  background: #090909;
+}
+
+.pedals-meter,
+.pedals-effect,
+#pedalsClipTools,
+#pedalsImportTools {
+  background-color: #090909;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
 }
 
 #pedalsClipTools label {
@@ -990,6 +1013,8 @@ html, body {
 }
 
 #pedalsClipTools button,
+#pedalsImportTools button,
+#pedalsImportTools select,
 .pedals-file-label {
   padding: 7px 10px;
   border: 1px solid var(--dark-teal);
@@ -1000,16 +1025,51 @@ html, body {
   cursor: pointer;
 }
 
-#pedalsClipTools button:disabled {
+#pedalsImportTools select {
+  padding: 7px 8px;
+  color: var(--text);
+}
+
+#pedalsClipTools button:disabled,
+#pedalsImportTools button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-#pedalsClipStatus {
+#pedalsClipStatus,
+#pedalsImportStatus {
   flex: 1 1 100%;
   margin: 0;
   color: var(--muted-text);
   font-size: 11px;
+}
+
+#pedalsImportTools > label:not(.pedals-file-label) {
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+#pedalsPitch {
+  margin: 0 0 14px;
+}
+
+.pedals-pitch-readout {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#pedalsPitchNote {
+  min-width: 90px;
+  color: var(--text);
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1;
+}
+
+#pedalsPitchStatus {
+  color: var(--muted-text);
+  font-size: 12px;
 }
 
 .pedals-file-input {
@@ -1140,6 +1200,20 @@ html, body {
         <button id="pedalsClipLoop" type="button" disabled>Loop clip</button>
         <p id="pedalsClipStatus" role="status" aria-live="polite">Start the engine to import and loop a saved WAV clip.</p>
       </div>
+      <div id="pedalsImportTools" aria-label="Effects preset and impulse response tools">
+        <button id="pedalsSavePreset" type="button">Save preset</button>
+        <label class="pedals-file-label" for="pedalsPresetFile">Load preset</label>
+        <input id="pedalsPresetFile" class="pedals-file-input" type="file" accept=".json,application/json">
+        <label for="pedalsIrTarget">IR target</label>
+        <select id="pedalsIrTarget">
+          <option value="cabinet">Cabinet</option>
+          <option value="reverb">Reverb</option>
+          <option value="both">Both</option>
+        </select>
+        <label class="pedals-file-label" for="pedalsIrFile">Import IR WAV</label>
+        <input id="pedalsIrFile" class="pedals-file-input" type="file" accept=".wav,audio/wav,audio/x-wav">
+        <p id="pedalsImportStatus" role="status" aria-live="polite">Save/load settings as JSON or load a WAV impulse response (up to 10 seconds).</p>
+      </div>
       <p id="pedalsStatus" role="status" aria-live="polite">Choose your interface, connect headphones, then start the engine.</p>
       <div class="pedals-monitors">
         <section class="pedals-meter" aria-label="Input level monitor">
@@ -1153,6 +1227,13 @@ html, body {
           <div class="pedals-level" aria-label="Output peak level"><span id="pedalsOutputLevel"></span></div>
         </section>
       </div>
+      <section id="pedalsPitch" class="pedals-meter" aria-label="Bass note estimate">
+        <div class="pedals-meter-heading"><span>LIVE NOTE ESTIMATE</span><span>MONOPHONIC INPUT · APPROXIMATE</span></div>
+        <div class="pedals-pitch-readout">
+          <strong id="pedalsPitchNote">--</strong>
+          <span id="pedalsPitchStatus" role="status" aria-live="polite">Start audio to detect a note.</span>
+        </div>
+      </section>
       <div class="pedals-rack">
         <section class="pedals-effect" data-effect="preamp">
           <div class="pedals-effect-heading"><h2>Input trim</h2></div>
@@ -1165,10 +1246,18 @@ html, body {
           <label class="pedals-knob"><span>Attack</span><output>10 ms</output><input data-param="attack" type="range" min="1" max="100" value="10" step="1"></label>
           <label class="pedals-knob"><span>Release</span><output>180 ms</output><input data-param="release" type="range" min="20" max="500" value="180" step="5"></label>
         </section>
+        <section class="pedals-effect" data-effect="gate">
+          <div class="pedals-effect-heading"><h2>Noise gate</h2><button type="button" data-toggle="gate" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Threshold</span><output>−55 dB</output><input data-param="gateThreshold" type="range" min="-80" max="-20" value="-55" step="1"></label>
+        </section>
         <section class="pedals-effect" data-effect="drive">
           <div class="pedals-effect-heading"><h2>Drive</h2><button type="button" data-toggle="drive" aria-pressed="false">BYPASS</button></div>
           <label class="pedals-knob"><span>Drive</span><output>12%</output><input data-param="drive" type="range" min="0" max="100" value="12" step="1"></label>
           <label class="pedals-knob"><span>Tone</span><output>3.2 kHz</output><input data-param="driveTone" type="range" min="800" max="8000" value="3200" step="100"></label>
+        </section>
+        <section class="pedals-effect" data-effect="bitcrusher">
+          <div class="pedals-effect-heading"><h2>Bitcrusher</h2><button type="button" data-toggle="bitcrusher" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Bit depth</span><output>8 bit</output><input data-param="bitDepth" type="range" min="2" max="16" value="8" step="1"></label>
         </section>
         <section class="pedals-effect" data-effect="eq">
           <div class="pedals-effect-heading"><h2>3-band EQ</h2><button type="button" data-toggle="eq" aria-pressed="true">ON</button></div>
@@ -1181,14 +1270,42 @@ html, body {
           <label class="pedals-knob"><span>Rate</span><output>0.8 Hz</output><input data-param="chorusRate" type="range" min="0.1" max="4" value="0.8" step="0.1"></label>
           <label class="pedals-knob"><span>Depth</span><output>12 ms</output><input data-param="chorusDepth" type="range" min="2" max="25" value="12" step="1"></label>
         </section>
+        <section class="pedals-effect" data-effect="phaser">
+          <div class="pedals-effect-heading"><h2>Phaser</h2><button type="button" data-toggle="phaser" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Rate</span><output>0.4 Hz</output><input data-param="phaserRate" type="range" min="0.1" max="4" value="0.4" step="0.1"></label>
+          <label class="pedals-knob"><span>Depth</span><output>600 Hz</output><input data-param="phaserDepth" type="range" min="100" max="1600" value="600" step="50"></label>
+        </section>
+        <section class="pedals-effect" data-effect="delay">
+          <div class="pedals-effect-heading"><h2>Delay</h2><button type="button" data-toggle="delay" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Time</span><output>320 ms</output><input data-param="delayTime" type="range" min="50" max="1000" value="320" step="10"></label>
+          <label class="pedals-knob"><span>Feedback</span><output>30%</output><input data-param="delayFeedback" type="range" min="0" max="85" value="30" step="1"></label>
+          <label class="pedals-knob"><span>Mix</span><output>30%</output><input data-param="delayMix" type="range" min="0" max="100" value="30" step="1"></label>
+        </section>
+        <section class="pedals-effect" data-effect="reverb">
+          <div class="pedals-effect-heading"><h2>Reverb</h2><button type="button" data-toggle="reverb" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Decay</span><output>2.0 s</output><input data-param="reverbDecay" type="range" min="0.5" max="5" value="2" step="0.1"></label>
+          <label class="pedals-knob"><span>Mix</span><output>25%</output><input data-param="reverbMix" type="range" min="0" max="100" value="25" step="1"></label>
+        </section>
+        <section class="pedals-effect" data-effect="octaver">
+          <div class="pedals-effect-heading"><h2>Sub octaver</h2><button type="button" data-toggle="octaver" aria-pressed="false">BYPASS</button></div>
+          <label class="pedals-knob"><span>Sub level</span><output>25%</output><input data-param="octaveLevel" type="range" min="0" max="60" value="25" step="1"></label>
+        </section>
         <section class="pedals-effect" data-effect="cab">
           <div class="pedals-effect-heading"><h2>Cabinet</h2><button type="button" data-toggle="cab" aria-pressed="true">ON</button></div>
           <label class="pedals-knob"><span>Low cut</span><output>35 Hz</output><input data-param="cabLow" type="range" min="20" max="100" value="35" step="1"></label>
           <label class="pedals-knob"><span>High cut</span><output>4.5 kHz</output><input data-param="cabHigh" type="range" min="1500" max="10000" value="4500" step="100"></label>
         </section>
+        <section class="pedals-effect" data-effect="cabIR">
+          <div class="pedals-effect-heading"><h2>Cab impulse</h2><button type="button" data-toggle="cabIR" aria-pressed="false">BYPASS</button></div>
+          <p class="pedals-note">Import a cabinet IR WAV above to activate custom speaker coloration.</p>
+        </section>
         <section class="pedals-effect" data-effect="master">
           <div class="pedals-effect-heading"><h2>Master output</h2></div>
           <label class="pedals-knob"><span>Level</span><output>35%</output><input data-param="master" type="range" min="0" max="100" value="35" step="1"></label>
+        </section>
+        <section class="pedals-effect" data-effect="limiter">
+          <div class="pedals-effect-heading"><h2>Output limiter</h2><button type="button" data-toggle="limiter" aria-pressed="true">ON</button></div>
+          <label class="pedals-knob"><span>Ceiling</span><output>−1 dB</output><input data-param="limiterThreshold" type="range" min="-12" max="0" value="-1" step="0.5"></label>
         </section>
       </div>
       <p class="pedals-note">Audio is processed locally in your browser. The input is never routed directly to the output; headphones are recommended to prevent acoustic feedback.</p>
